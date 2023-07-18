@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Colorado's Mental Health Network | The Denver Post</title>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex,follow">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Roboto|Roboto+Condensed:700|Roboto+Mono" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/dataTables.foundation.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/foundation/6.2.4/foundation.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.14/c3.css" />
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/dataTables.foundation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/foundation/6.2.4/foundation.min.js"></script>
+    <style>
+    table,
+    thead,
+    tbody {
+        /*border: 0px solid silver !important;*/
+        font-family: Helvetica, sans-serif;
+        font-size: 1rem;
+    }
+
+    td.details-control {
+        text-align: center;
+        color: forestgreen;
+        cursor: pointer;
+    }
+
+    tr.shown td.details-control {
+        text-align: center;
+        color: red;
+    }
+
+    .no-caret {
+        font-size: 0;
+    }
+
+    .graphic-title {
+        font-family: Helvetica, sans-serif;
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+        line-height: 1;
+    }
+
+    .graphic-text {
+        font-family: Helvetica, sans-serif;
+    }
+
+    .source {
+        font-family: Helvetica, sans-serif;
+        font-size: .8rem;
+        font-style: italic;
+        margin: 5px 5px 0 0;
+        text-align: right;
+    }
+
+    .sub-data {
+        font-size: .8rem;
+        font-style: italic;
+    }
+    </style>
+</head>
+
+<body>
+    <div class="row">
+        <div class="large-12 columns">
+            <h2 class="graphic-title">Colorado's mental health network: A wide range in charges</h2>
+            <p class="graphic-text">The table shows rates the regional mental health networks charges the state of Colorado for counseling and crisis intervention. Medicaid pays an independent clinician $91.08 for an hour of counseling and $47.52 for an hour of crisis intervention. The difference between the amount the network charges the state and what Medicaid would pay an independent clinician is shown in italics*. <strong>Click column headers to sort, scroll right to see full table, click triangle to see network's service area.</strong></p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="large-12 columns">
+            <table id="mental-health-table" cellspacing="0" width="100%">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Network</th>
+                        <th>County</th>
+                        <th>Area served</th>
+                        <th>Assets</th>
+                        <th>CEO compensation</th>
+                        <th>Network hourly counseling rate*</th>
+                        <th>Medicaid hourly counseling rate</th>
+                        <th>Network hourly crisis intervention rate*</th>
+                        <th>Medicaid hour of crisis intervention rate</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <p class="source">Source: ??? / By Kevin Hamm, The Denver Post</p>
+        </div>
+    </div>
+    <script>
+    var dataFile = './mental_health_data.json';
+
+    $(document).ready(function() {
+
+
+        var table = $('#mental-health-table').DataTable({
+            ajax: {
+                'url': dataFile,
+                'dataSrc': ''
+            },
+            scrollX: true,
+            scrollY: '500px',
+            paging: false,
+            pageLength: null,
+            fixedHeader: true,
+            dom: 'ft',
+            order: [
+                [4, 'desc']
+            ],
+            columns: [{
+                    className: 'details-control',
+                    ordering: false,
+                    data: null,
+                    defaultContent: '',
+                    render: function() {
+                        return '<i class="fa fa-caret-down" aria-hidden="true"></i>';
+                    },
+                    width: "15px"
+                },
+                { data: 'network' },
+                { data: 'county', visible: false },
+                { data: 'counties_served', visible: false },
+                {
+                    data: 'assets',
+                    render: $.fn.dataTable.render.number(',', '.', 0, '$')
+                },
+                {
+                    data: 'ceo_compensation',
+                    render: $.fn.dataTable.render.number(',', '.', 0, '$')
+                },
+                {
+                    data: 'hourly_counseling',
+                    //render: $.fn.dataTable.render.number(',', '.', 2, '$'),
+                    render: function(data, type, row) {
+                        return '$' + data.toFixed(2) + '<br><span class="sub-data">$' + (data - row.hourly_counseling_medicaid).toFixed(2) + '</span>'
+                    }
+                },
+                { data: 'hourly_counseling_medicaid', visible: false },
+                {
+                    data: 'hourly_rate',
+                    render: function(data, type, row) {
+                        return '$' + data.toFixed(2) + '<br><span class="sub-data">$' + (data - row.hourly_medicaid).toFixed(2) + '</span>'
+                    },
+                    //render: $.fn.dataTable.render.number(',', '.', 2, '$')
+                },
+                { data: 'hourly_medicaid', visible: false },
+                { data: 'notes', visible: false },
+            ]
+        });
+        // Add event listener for opening and closing details
+        $('#mental-health-table tbody').on('click', 'td.details-control', function() {
+            var tr = $(this).closest('tr');
+            var tdi = tr.find("i.fa");
+            var row = table.row(tr);
+
+            if (row.child.isShown()) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+                tdi.first().removeClass('fa-caret-up');
+                tdi.first().addClass('fa-caret-down');
+            } else {
+                // Open this row
+                row.child(format(row.data())).show();
+                tr.addClass('shown');
+                tdi.first().removeClass('fa-caret-down');
+                tdi.first().addClass('fa-caret-up');
+            }
+        });
+
+        table.on("user-select", function(e, dt, type, cell, originalEvent) {
+            if ($(cell.node()).hasClass("details-control")) {
+                e.preventDefault();
+            }
+        })
+    });
+
+    function format(d) {
+
+        // `d` is the original data object for the row
+        return '<table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">' +
+            '<tr>' +
+            // '<td>Full name:</td>' +
+            // '<td>' + d.name + '</td>' +
+            // '</tr>' +
+            // '<tr>' +
+            // '<td>Extension number:</td>' +
+            // '<td>' + d.extn + '</td>' +
+            // '</tr>' +
+            // '<tr>' +
+            // '<td>Extra info:</td>' +
+            // '<td>And any further details here (images etc)...</td>' +
+            '<td>' + d.counties_served + '</td>' +
+            '</tr>' +
+            '</table>';
+    }
+    </script>
+</body>
+
+</html>

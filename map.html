@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Colorado's Mental Health Network</title>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex,follow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed&display=swap');
+
+        html, body {
+            height: 100%;
+            margin: 1%;
+        }
+        #map {
+            width: 100%;
+            height: 600px;
+            border: 2px solid silver;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Roboto Condensed';
+            font-size: .9rem;
+            line-height: 1;
+        }
+        tr {
+            border-bottom: 1px solid lightgray;
+        }
+        td {
+            padding: 5px 0 5px 0;
+            text-align: center;
+        }
+        th {
+            text-align: center;
+            vertical-align: bottom;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+        .leaflet-popup-content-wrapper {
+            width: 300px;
+            border-radius: 0;
+            z-index: 20000;
+        }
+        .popup-header {
+            font-family: 'Roboto Condensed';
+            font-size: 1.3rem;
+            line-height: 1.1;
+            margin: 0 0 -15px 0;
+            color: #282828;
+        }
+
+        .counties {
+            font-family: 'Roboto Condensed';
+            font-style: italic;
+            color: #787878;
+            margin-bottom: -10px;
+        }
+
+        .popup-text {
+            font-family: 'Roboto Condensed';
+            font-size: 1.1rem;
+        }
+
+        .note {
+            font-family: 'Roboto Condensed';
+            font-size: .9rem;
+            color: #aaa;
+            font-style: italic;
+            margin: 5px 0 -13px 0 !important;
+        }
+
+        .info { padding: 6px 8px; font: 14px/16px Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; } .info h4 { margin: 0 0 5px; color: #777; }
+
+        .legend { text-align: left; line-height: 18px; color: #555; } .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+
+        .graphic-title {
+            font-family: Helvetica, sans-serif;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            line-height: 1;
+        }
+        .graphic-text {
+            font-family: Helvetica, sans-serif;
+            line-height: 1.4 !important;
+        }
+        .source {
+            font-family: Helvetica, sans-serif;
+            font-size: .8rem;
+            font-style: italic;
+            margin: 5px 5px 0 0;
+        }
+        /*div.info.legend.leaflet-control {
+            width: 155px;
+        }*/
+    </style>
+</head>
+
+<body>
+    <h2 class="graphic-title">Colorado's mental health safety net</h2>
+    <p class="graphic-text">The map shows the coverage areas of the state's 17 regional community mental health centers, which are supposed to serve as the core of Colorado's behavioral health safety net and treat people who are indigent, on Medicaid or underinsured and can't pay for private treatment. Click the map to see what each center charges the state for Medicaid reimbursement versus what an independent clinician is reimbursed by Medicaid for the same service, as well as how much in liquid-asset reserves each center had on-hand and how much the CEO of each made last fiscal year.</p>
+    <div id='map'></div>
+    <p class="source">Sources: Audited financial statements submitted to Colorado’s Office of Behavioral Health, adjusted cost reports submitted to Colorado’s Department of Health Care Policy and Financing, Form 990 financial disclosures submitted to the U.S. Internal Revenue Service, Colorado Medicaid Fee for Service Rate Schedule / By Kevin Hamm, The Denver Post</p>
+    <script src="merged_with_data.js" type="text/javascript"></script>
+    <script>
+    //var map = L.map('map').setView([39, -105.4], 7);
+    var map = L.map('map');
+
+    var tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 11,
+        minZoom: 6
+    }).addTo(map);
+
+    function onEachFeature(feature, layer) {
+        var hourlyDifference = (feature.properties.hourly_rate - feature.properties.hourly_medicaid).toFixed(2);
+        var hourlyCounselingDifference = (feature.properties.hourly_counseling - feature.properties.hourly_counseling_medicaid).toFixed(2);
+        var hourlyRate = (feature.properties.hourly_rate).toFixed(2);
+        var hourlyMedicaid = (feature.properties.hourly_medicaid).toFixed(2);
+        var hourlyCounseling = (feature.properties.hourly_counseling).toFixed(2);
+        var hourlyCounselingMedicaid = (feature.properties.hourly_counseling_medicaid).toFixed(2);
+        var assets = (feature.properties.assets).toLocaleString();
+        var ceoCompensation = (feature.properties.ceo_compensation).toLocaleString();
+
+        var popupContent = '<h3 class="popup-header">' + feature.properties.network + '</h3><h4 class="counties">' + feature.properties.counties_served + '</h4><p>' + '<table><tr><th></th><th>Center</th><th>Independent provider</th><th>Difference*</th></tr><tr><td style="text-align:left">Hour of<br>counseling</td><td>$' + hourlyCounseling + '</td><td>$' + hourlyCounselingMedicaid + '</td><td class="highlight">$' + hourlyCounselingDifference + '</td></tr><tr><td style="text-align:left">Hour<br>of crisis<br>intervention</td><td>$' + hourlyRate + '</td><td>$' + hourlyMedicaid + '</td><td class="highlight">$' + hourlyDifference + '</td></tr></table><p class="note">*Difference between the amount the center charges and what an independent provider can charge for Medicaid reimbursement for the same service.</p><p class="popup-text" style="margin-bottom:-15px !important">Liquid-asset reserve: <span class="highlight">$' + assets + '</span></p><p class="popup-text">CEO compensation: <span class="highlight">$' + ceoCompensation + '</span></p>';
+
+        if (feature.properties && feature.properties.popupContent) {
+            popupContent += feature.properties.popupContent;
+        }
+
+        layer.bindPopup(popupContent);
+    }
+
+    function getColor(d) {
+        return d > 500 ? '#800026' :
+            d > 450 ? '#BD0026' :
+            d > 400 ? '#E31A1C' :
+            d > 350 ? '#FC4E2A' :
+            d > 300 ? '#FD8D3C' :
+            d > 250 ? '#FEB24C' : '#FFEDA0';
+    }
+
+    function style(feature) {
+        return {
+            weight: 1.5,
+            opacity: 1,
+            color: 'white',
+            //dashArray: '1',
+            fillOpacity: 0.5,
+            fillColor: getColor(feature.properties.hourly_counseling)
+        };
+    }
+
+    var networksLayer = L.geoJSON(networkData, {
+
+        style: function(feature) {
+            return feature.properties && feature.properties.style;
+        },
+
+        onEachFeature: onEachFeature,
+        style: style
+    }).addTo(map);
+    map.fitBounds(networksLayer.getBounds());
+
+    var legend = L.control({ position: 'bottomright' });
+
+    legend.onAdd = function(map) {
+
+        var div = L.DomUtil.create('div', 'info legend');
+        var grades = [200, 250, 300, 350, 400, 450, 500];
+        var labels = [];
+        var from, to;
+
+        for (var i = 0; i < grades.length; i++) {
+            from = grades[i];
+            to = grades[i + 1];
+
+            labels.push(
+                '<i style="background:' + getColor(from + 1) + '"></i> $' +
+                from + (to ? '&ndash;' + to : '+'));
+        }
+
+        div.innerHTML = '<div style="margin-bottom:5px">What centers receive in<br>Medicaid reimbursement<br>for an hour of counseling</div>' + labels.join('<br>');
+        return div;
+    };
+
+    legend.addTo(map);
+    </script>
+</body>
+
+</html>
